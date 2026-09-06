@@ -1,14 +1,11 @@
 """Documentation lints.
 
-A pathway README has a fixed shape so that a reader landing on any pathway repo
-finds the same seven answers in the same order, and so that the document cannot
-quietly rot. The two prohibitions matter most: a README may carry no metric
-table and must stay short. Inlined metric tables are exactly what went stale in
-the predecessor repo, so the README states one headline and links to the version
-card, which is generated.
+A pathway README has a fixed shape: the same seven sections in the same order.
+Two prohibitions — no metric table and a line cap — keep it from going stale,
+since the README states one headline and links the generated version card.
 
-These checks are importable rather than living in a test file, so a published
-pathway repo lints its own README with no access to the monorepo.
+These checks are importable rather than living in a test file, so a pathway
+can lint its own README with no extra tooling.
 """
 
 from __future__ import annotations

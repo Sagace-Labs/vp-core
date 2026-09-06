@@ -1,9 +1,8 @@
 """Binary classification metrics.
 
 Every metric a protocol may name is defined here, so a protocol's ``metrics``
-tuple is checkable against ``METRICS`` rather than being free text. A fold with
-a single class yields NaN rather than raising: a degenerate fold is a fact to
-record, not an exception to swallow.
+tuple is checkable against ``METRICS``. A fold with a single class yields NaN
+rather than raising.
 """
 
 from __future__ import annotations
@@ -50,11 +49,7 @@ def binary_metrics(
 def aggregate(
     per_seed: list[dict[str, float]], metrics: tuple[str, ...]
 ) -> dict[str, dict]:
-    """Collapse per-seed metric dicts into mean, std and the raw per-seed values.
-
-    Per-seed values are always kept. A mean without its spread is not a result,
-    and a mean without its components cannot be audited.
-    """
+    """Collapse per-seed metric dicts into mean, std and the raw per-seed values."""
     out: dict[str, dict] = {}
     for name in metrics:
         vals = [float(m[name]) for m in per_seed]

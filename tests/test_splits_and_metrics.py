@@ -8,10 +8,9 @@ import pytest
 from vp_core.metrics import aggregate, binary_metrics
 from vp_core.splits import murcko_scaffold, scaffold_split_indices, scaffold_train_val
 
-# Twelve distinct ring systems, two substituted variants each. Every molecule is
-# cyclic on purpose: acyclic molecules all share the empty Murcko scaffold, so a
-# handful of them form one oversized group that the greedy packer cannot place —
-# a real property of scaffold splitting, but not what these tests are about.
+# Twelve distinct ring systems, two substituted variants each. All cyclic:
+# acyclic molecules share the empty Murcko scaffold and form one oversized group
+# the greedy packer cannot place.
 _RINGS = [
     "c1ccccc1", "c1ccncc1", "c1ccc2ccccc2c1", "c1ccsc1", "c1ccoc1", "C1CCCCC1",
     "C1CCNCC1", "C1CCOCC1", "c1cc2ccccc2[nH]1", "c1ccc2c(c1)OCO2",

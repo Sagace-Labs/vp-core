@@ -1,9 +1,8 @@
 """Content hashes for files.
 
 Dataset tables are hashed by :func:`vp_core.dataset.dataset_hash`, which
-canonicalises before hashing. Everything else — weights, in particular — is
-hashed byte-for-byte here, because a weights file is opaque and any change to
-it is a change to the version.
+canonicalises first. Everything else, weights in particular, is hashed
+byte-for-byte here.
 """
 
 from __future__ import annotations

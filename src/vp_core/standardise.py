@@ -1,9 +1,8 @@
 """The one SMILES standardiser.
 
-Every dataset, every hash and every cross-pathway comparison is keyed on an
-InChIKey produced here. Using a different standardiser anywhere means salt and
-charge variants of the same compound stop matching, which is how identity leaks
-survive an audit — so this function has no options and no alternatives.
+Every dataset and every hash is keyed on an InChIKey produced here. A
+different standardiser anywhere means salt and charge variants of the same
+compound stop matching, so this function has no options.
 
 Normalise, take the largest fragment, neutralise, then emit the canonical
 isomeric SMILES and its InChIKey.

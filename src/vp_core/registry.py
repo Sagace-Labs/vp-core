@@ -1,14 +1,11 @@
 """Version discovery and loading, shared by every pathway.
 
-A pathway's public API is thin on purpose: list the versions, load one, predict
-with it. All of that is generic given a manifest, so it lives here rather than
-being reimplemented per pathway.
+List the versions, load one, predict with it. All of that is generic given a
+manifest, so it lives here rather than being reimplemented per pathway.
 
-Two rules are enforced at load time. Predictions come back as a DataFrame whose
-columns are exactly the manifest's declared outputs, so a name can never drift
-away from its contract unnoticed. And a version directory is only usable if its
-manifest validates, so a half-written release fails loudly instead of silently
-serving stale weights.
+Two rules are enforced at load time: predictions come back as a DataFrame whose
+columns are the manifest's declared outputs, and a version directory is usable
+only if its manifest validates.
 """
 
 from __future__ import annotations
@@ -132,7 +129,7 @@ class VersionedPathway:
         """Load a version (default: the newest), validating its manifest."""
         return self._get(version or self.current())
 
-    @lru_cache(maxsize=8)  # noqa: B019 - bounded, keyed on an immutable name
+    @lru_cache(maxsize=8)  # noqa: B019 - bounded, keyed on a version name
     def _get(self, version: str) -> Version:
         directory = self.versions_dir / version
         path = directory / "manifest.toml"
@@ -158,13 +155,12 @@ class VersionedPathway:
 
 
 def _default_predict(model: Any, smiles: list[str], version: Version) -> np.ndarray:
-    """XGBoost on a vp-core fingerprint: the shape every current pathway uses."""
+    """XGBoost on a vp-core fingerprint, when no predict function is supplied."""
     from rdkit import Chem, RDLogger
 
     from vp_core import fingerprints, xgb
 
-    # An unparseable input is a declared NaN, not an error, so RDKit should not
-    # narrate it to stderr on every call.
+    # An unparseable input is a declared NaN, not an error.
     RDLogger.DisableLog("rdApp.*")
 
     features = version.features

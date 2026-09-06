@@ -1,15 +1,11 @@
 """The dataset table contract and its hash.
 
-Every pathway dataset is reduced to the same three columns before anything else
-happens: ``inchikey``, ``smiles`` (standardised) and ``label``. Extra columns
-may travel alongside as provenance, but they are not part of the contract and
-are deliberately excluded from the hash.
+Every pathway dataset is reduced to the same three columns: ``inchikey``,
+``smiles`` (standardised) and ``label``. Extra columns may travel alongside as
+provenance but are excluded from the hash.
 
-The hash is taken over the **standardised** table rather than the raw download.
-A raw file changes whenever the source reformats a column or reorders a page,
-which would make the hash alarm constantly for no scientific reason. Hashing
-the parsed table means the value is stable under cosmetic upstream change and
-moves precisely when the science does.
+The hash covers the **standardised** table, not the raw download, so it is
+stable under cosmetic upstream change and moves when the science does.
 
 Serialisation for hashing is CSV with a fixed float format and a fixed row
 order, not Parquet — Parquet bytes vary across writer versions.
@@ -91,8 +87,8 @@ def write_table(df: pd.DataFrame, path: str | Path) -> str:
 def stratified_example(df: pd.DataFrame, n: int = 200, seed: int = 0) -> pd.DataFrame:
     """A small class-stratified sample for the committed test fixture.
 
-    The fixture is what lets a pathway's tests run on a fresh clone with no
-    network and no licensed data, so both classes must always be present.
+    The fixture lets a pathway's tests run with no network and no licensed
+    data, so both classes must be present.
     """
     frac = min(1.0, n / len(df))
     parts = []

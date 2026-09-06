@@ -1,18 +1,13 @@
 """The version manifest: schema, reader, writer and validator.
 
-One ``manifest.toml`` per released version. It is written by a pathway's
-``train`` command and never by hand — that is the entire point. In the
-predecessor repo the equivalent record was a 630-line Python literal whose
-numbers were transcribed by a human from markdown summaries, and transcription
-is where every stale figure came from.
+One ``manifest.toml`` per released version, written by a pathway's ``train``
+command and never by hand. TOML rather than JSON because this is the document a
+human reads in a review diff; the numbers live in ``metrics.json`` beside it,
+which tooling consumes and which carries per-seed arrays.
 
-TOML rather than JSON because this is the document a human reads in a review
-diff. Numbers still live in ``metrics.json`` next to it, because those are
-consumed by tooling and include per-seed arrays.
-
-A pathway with no trained model (a structural-alert pathway such as ``metals``)
-omits the ``[dataset]`` and ``[model]`` tables entirely; the version is then the
-alert set itself. The validator accepts that shape on purpose.
+A pathway with no trained model omits the ``[dataset]`` and ``[model]``
+tables, and the version is then the rule set itself. The validator accepts
+that shape.
 """
 
 from __future__ import annotations
@@ -49,7 +44,7 @@ _DATASET_REQUIRED = (
 )
 _MODEL_REQUIRED = ("family", "features", "fit", "weights", "sha256")
 _PROTOCOL_REQUIRED = ("id", "provider", "core_version")
-_PROVENANCE_REQUIRED = ("repo", "commit", "python", "rdkit")
+_PROVENANCE_REQUIRED = ("python", "rdkit")
 
 # Key order used when writing, so manifests diff cleanly against each other.
 _ORDER = ("schema", "pathway", "version", "released", "supersedes", "reason")
@@ -134,8 +129,7 @@ def validate(manifest: dict[str, Any], *, version_dir: Path | None = None) -> li
     """Return a list of problems; empty means the manifest is valid.
 
     When ``version_dir`` is given, the referenced weights file must exist and
-    its recorded hash must match — which is how a silent edit to a released
-    version is caught.
+    its recorded hash must match, which catches an edit to a released version.
     """
     from vp_core import protocols
     from vp_core.hashing import sha256_file

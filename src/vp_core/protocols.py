@@ -1,17 +1,15 @@
-"""Evaluation protocols — the identity that makes two metrics comparable.
+"""Evaluation protocols.
 
-A protocol fixes everything about how a number was produced *except* the model
-and the data: the split, the fold sizes, the seeds, and the metric set. Two
-metric values may be compared only when they carry the same protocol id.
+A protocol fixes how a number was produced apart from the model and the data:
+the split, the fold sizes, the seeds and the metric set. Two metric values may
+be compared only when they carry the same protocol id.
 
-Protocols are **append-only**. Editing one in place would silently invalidate
-every metric already recorded against it, so a change means a new revision:
-``scaffold-shuffle-5seed@1`` becomes ``@2``. ``tests/test_protocols_frozen.py``
-pins every definition to a fingerprint so an in-place edit fails CI.
+Protocols are **append-only**. A change means a new revision —
+``scaffold-shuffle-5seed@1`` becomes ``@2`` — and ``tests/test_protocols.py``
+pins every definition to a fingerprint.
 
-Changing the seed *set* is a protocol change like any other. A mean over seeds
-(0, 1, 2, 3, 4) and a mean over (0, 2, 6, 8, 13) are different estimators, and
-comparing them is exactly the mistake this module exists to prevent.
+Changing the seed *set* is a protocol change: a mean over seeds (0, 1, 2, 3, 4)
+and a mean over (0, 2, 6, 8, 13) are different estimators.
 """
 
 from __future__ import annotations
@@ -64,7 +62,7 @@ class Protocol:
         )
 
     def fingerprint(self) -> str:
-        """Stable hash of the definition. Used to detect an in-place edit."""
+        """Stable hash of the definition, used to detect an in-place edit."""
         payload = "|".join(
             [
                 self.id,
@@ -88,8 +86,8 @@ _DEFINITIONS: tuple[Protocol, ...] = (
         metrics=("auc_roc", "auprc", "mcc", "brier"),
         description=(
             "Bemis-Murcko scaffold split with scaffold groups permuted by seed, "
-            "so distinct seeds give genuinely distinct test sets. Five seeds; "
-            "report mean and standard deviation over the held-out test folds."
+            "so distinct seeds give distinct test sets. Five seeds; report mean "
+            "and standard deviation over the held-out test folds."
         ),
     ),
     Protocol(
@@ -100,8 +98,8 @@ _DEFINITIONS: tuple[Protocol, ...] = (
         seeds=(0,),
         metrics=("auc_roc",),
         description=(
-            "Single-seed smoke protocol for tests and CI. Never cite a smoke "
-            "number: it carries no variance estimate."
+            "Single-seed smoke protocol for tests and CI. Carries no variance "
+            "estimate."
         ),
     ),
 )
@@ -129,10 +127,9 @@ def comparable(a: str, b: str) -> bool:
 
 
 def require_comparable(a: str, b: str) -> None:
-    """Raise unless two metrics may be compared. Call this before any delta."""
+    """Raise unless two metrics may be compared. Call before any delta."""
     if not comparable(a, b):
         raise ValueError(
-            f"metrics from {a!r} and {b!r} are not comparable — they were produced "
-            "under different protocols. Re-evaluate one under the other's protocol "
-            "instead of comparing them."
+            f"metrics from {a!r} and {b!r} are not comparable: they were produced "
+            "under different protocols. Re-evaluate one under the other's protocol."
         )

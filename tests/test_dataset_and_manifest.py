@@ -73,8 +73,6 @@ MINIMAL = {
     },
     "protocol": {"id": "smoke@1", "provider": "vp-core", "core_version": "1.0.0"},
     "provenance": {
-        "repo": "Sagace-Labs/virtual-pathways",
-        "commit": "abc1234",
         "python": "3.11.11",
         "rdkit": "2026.03.2",
     },
@@ -82,7 +80,7 @@ MINIMAL = {
 
 
 def test_minimal_training_free_manifest_is_valid():
-    """A structural-alert pathway has neither dataset nor model, on purpose."""
+    """A structural-alert pathway has neither dataset nor model."""
     assert manifest.validate(MINIMAL) == []
 
 

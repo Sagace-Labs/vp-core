@@ -1,8 +1,7 @@
 """Generate a version's human-readable card from its machine record.
 
 ``CARD.md`` is derived, never authored. It restates the manifest and metrics so
-a reader can see what a version is without parsing TOML, and because it is
-generated it cannot disagree with the files it describes.
+a reader can see what a version is without parsing TOML.
 """
 
 from __future__ import annotations
@@ -106,15 +105,11 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
         ]
 
     prov = manifest.get("provenance", {})
-    env = ", ".join(
-        f"{k} {v}" for k, v in prov.items() if k not in ("repo", "commit", "round")
-    )
+    env = ", ".join(f"{k} {v}" for k, v in prov.items())
     lines += [
         "## Provenance",
         "",
-        f"Built in `{prov.get('repo')}` at commit `{prov.get('commit')}`"
-        + (f", round `{prov['round']}`" if prov.get("round") else "")
-        + f". Environment: {env}.",
+        f"Environment: {env}.",
         "",
         "Reproducibility is to this dataset hash and this environment, not "
         "bit-exact: the sources are live endpoints and RDKit descriptor values "

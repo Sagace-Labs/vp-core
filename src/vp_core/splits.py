@@ -1,23 +1,17 @@
 """Bemis-Murcko scaffold splitting.
 
-A scaffold split places every compound sharing a Murcko scaffold in the same
-fold, which is a harder and more realistic generalisation test than a random
-split. No scaffold is ever divided across folds, so there is no structural
-leakage between train and test.
-
-Two orderings exist and they are not interchangeable:
+Every compound sharing a Murcko scaffold goes in the same fold, so no scaffold
+is divided across folds. Two orderings, not interchangeable:
 
 ``shuffle=True``
     Scaffold groups are permuted by the seed before greedy packing, so distinct
-    seeds give genuinely distinct test sets. Multi-seed spread is then a real
-    variance estimate. This is the default and the only ordering used by the
-    shipped protocols.
+    seeds give distinct test sets and multi-seed spread is a real variance
+    estimate. The default, and the only ordering the shipped protocols use.
 
 ``shuffle=False``
     Groups are packed largest-first, pinning the biggest scaffolds to train
     (the MoleculeNet convention). Harder, but seeds are correlated, so a
-    multi-seed standard deviation under this ordering understates the true
-    spread. Retained only to reproduce historical numbers.
+    multi-seed standard deviation understates the spread.
 """
 
 from __future__ import annotations
@@ -54,9 +48,8 @@ def scaffold_split_indices(
     """Split into (train, val, test) index arrays by Murcko scaffold.
 
     Raises when a fold comes out empty, which happens on small sets when one
-    scaffold group overflows past the val capacity into test. That is a real
-    failure of the seed for this dataset, not something to paper over — pick a
-    protocol whose seeds all yield valid folds and record it.
+    scaffold group overflows past the val capacity into test. Use a protocol
+    whose seeds all yield valid folds.
     """
     groups: dict[str, list[int]] = defaultdict(list)
     for i, smi in enumerate(smiles):
@@ -105,10 +98,8 @@ def scaffold_train_val(
     """Two-way scaffold split that covers every compound.
 
     Used for a deployment fit, where the validation fold exists only to stop
-    boosting early and nothing may be discarded. This is deliberately not the
-    same call as :func:`scaffold_split_indices` — an evaluation split holds out
-    a test fold and a deployment fit does not, and conflating them is how a
-    model ends up reported on data it trained on.
+    boosting early and nothing may be discarded. Distinct from
+    :func:`scaffold_split_indices`, which holds out a test fold.
     """
     groups: dict[str, list[int]] = defaultdict(list)
     for i, smi in enumerate(smiles):

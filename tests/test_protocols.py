@@ -1,9 +1,8 @@
 """Protocols are append-only and their definitions are pinned.
 
-Editing a protocol in place would silently change what every metric already
-recorded against it means. The fingerprint file makes that edit fail here
-instead of going unnoticed: a genuine change is a new revision (``@2``), and
-only adding one is allowed to move this test.
+Editing a protocol in place changes what every metric already recorded against
+it means. The fingerprint file makes that edit fail here; a genuine change is a
+new revision (``@2``).
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ def test_definitions_are_unchanged():
 
     removed = sorted(set(recorded) - set(current))
     assert not removed, (
-        f"protocols {removed} were removed — protocols are append-only, because "
+        f"protocols {removed} were removed — protocols are append-only, and "
         "metrics recorded against them still exist"
     )
     changed = [pid for pid in recorded if current[pid] != recorded[pid]]
@@ -40,7 +39,7 @@ def test_new_protocols_are_recorded():
     added = sorted(set(protocols.PROTOCOLS) - set(recorded))
     assert not added, (
         f"new protocols {added} are not in protocol_fingerprints.json — add them "
-        "deliberately so the pin stays meaningful"
+        "deliberately"
     )
 
 
