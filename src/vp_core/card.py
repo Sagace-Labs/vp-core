@@ -18,6 +18,7 @@ def _fmt(value: float) -> str:
 
 
 def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str:
+    from vp_core import manifest as manifest_mod
     from vp_core import protocols
 
     pathway = manifest["pathway"]
@@ -53,6 +54,10 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
     proto_id = manifest.get("protocol", {}).get("id")
     if metrics:
         proto = protocols.PROTOCOLS.get(proto_id)
+        # Only a version measuring several endpoints separately needs its
+        # tables labelled; one model reported once reads better without.
+        primary = manifest_mod.output_names(manifest)
+        heading = f"### `{primary[0]}`" if metrics.get("additional_outputs") else None
         lines += [
             "## Performance",
             "",
@@ -62,6 +67,7 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
             f"n_train={metrics['n']['train']}, n_val={metrics['n']['val']}, "
             f"n_test={metrics['n']['test']}.",
             "",
+            *([heading, ""] if heading else []),
             "| metric | mean | std | per seed |",
             "|---|---|---|---|",
         ]
@@ -70,6 +76,27 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
             lines.append(
                 f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |"
             )
+
+        # A version with more than one output records the rest here. Each is
+        # measured on the compounds its own endpoint labels, so each carries
+        # its own fold sizes.
+        for extra in metrics.get("additional_outputs", []):
+            lines += [
+                "",
+                f"### `{extra['name']}`",
+                "",
+                f"Measured on n_train={extra['n']['train']}, "
+                f"n_val={extra['n']['val']}, n_test={extra['n']['test']}.",
+                "",
+                "| metric | mean | std | per seed |",
+                "|---|---|---|---|",
+            ]
+            for name, agg in extra["test"].items():
+                per_seed = ", ".join(_fmt(v) for v in agg["per_seed"])
+                lines.append(
+                    f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |"
+                )
+
         lines += [
             "",
             "> Comparable only with metrics carrying the same protocol id.",

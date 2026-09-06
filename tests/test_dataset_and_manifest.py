@@ -52,6 +52,52 @@ def test_example_fixture_keeps_both_classes():
     assert set(sample["label"]) == {0, 1}
 
 
+TWO_ENDPOINTS = GOOD.assign(cytotox=[0, 0, 1, None])
+BOTH = ("label", "cytotox")
+
+
+def test_a_second_endpoint_leaves_the_first_endpoints_hash_alone():
+    """The reason a version keeps its recorded hash when a table gains a label."""
+    assert dataset.dataset_hash(TWO_ENDPOINTS) == dataset.dataset_hash(GOOD)
+    assert dataset.dataset_hash(TWO_ENDPOINTS, labels=BOTH) != dataset.dataset_hash(GOOD)
+
+
+def test_hash_moves_when_the_second_endpoint_changes():
+    changed = TWO_ENDPOINTS.assign(cytotox=[1, 0, 1, None])
+    assert dataset.dataset_hash(changed, labels=BOTH) != dataset.dataset_hash(
+        TWO_ENDPOINTS, labels=BOTH
+    )
+
+
+def test_an_absent_call_is_not_a_negative():
+    """A null label must not hash, or validate, as a zero."""
+    as_zero = TWO_ENDPOINTS.assign(cytotox=[0, 0, 1, 0])
+    assert dataset.dataset_hash(as_zero, labels=BOTH) != dataset.dataset_hash(
+        TWO_ENDPOINTS, labels=BOTH
+    )
+    assert dataset.validate_table(TWO_ENDPOINTS, labels=BOTH) == []
+
+
+def test_a_second_endpoint_is_held_to_the_same_contract():
+    degenerate = TWO_ENDPOINTS.assign(cytotox=[1, 1, 1, None])
+    assert any(
+        "cytotox" in p and "single class" in p
+        for p in dataset.validate_table(degenerate, labels=BOTH)
+    )
+    non_binary = TWO_ENDPOINTS.assign(cytotox=[0, 1, 5, None])
+    assert any(
+        "cytotox" in p and "binary" in p
+        for p in dataset.validate_table(non_binary, labels=BOTH)
+    )
+
+
+def test_fixture_keeps_every_class_of_every_endpoint():
+    sample = dataset.stratified_example(TWO_ENDPOINTS, n=2, seed=0, labels=BOTH)
+    assert set(sample["label"]) == {0, 1}
+    assert set(sample["cytotox"].dropna()) == {0, 1}
+    assert sample["cytotox"].isna().any()
+
+
 MINIMAL = {
     "schema": 1,
     "pathway": "demo",

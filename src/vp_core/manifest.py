@@ -17,8 +17,10 @@ from pathlib import Path
 from typing import Any
 
 __all__ = [
+    "DEFAULT_DATASET_LABELS",
     "DTYPES",
     "SCHEMA_VERSION",
+    "dataset_labels",
     "dumps",
     "output_names",
     "read",
@@ -42,6 +44,9 @@ _DATASET_REQUIRED = (
     "base_rate",
     "fetch",
 )
+#: Label columns the recorded hash covers. Absent means the single-endpoint
+#: default, so a manifest written before endpoints were nameable stays valid.
+DEFAULT_DATASET_LABELS: tuple[str, ...] = ("label",)
 _MODEL_REQUIRED = ("family", "features", "fit", "weights", "sha256")
 _PROTOCOL_REQUIRED = ("id", "provider", "core_version")
 _PROVENANCE_REQUIRED = ("python", "rdkit")
@@ -118,6 +123,12 @@ def read(path: str | Path) -> dict[str, Any]:
 def output_names(manifest: dict[str, Any]) -> list[str]:
     """Declared output column names, in declaration order."""
     return [o["name"] for o in manifest.get("signature", {}).get("outputs", [])]
+
+
+def dataset_labels(manifest: dict[str, Any]) -> list[str]:
+    """The label columns this version's dataset hash covers."""
+    declared = manifest.get("dataset", {}).get("labels")
+    return list(declared) if declared else list(DEFAULT_DATASET_LABELS)
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +214,15 @@ def validate(manifest: dict[str, Any], *, version_dir: Path | None = None) -> li
             problems.append(
                 "dataset is not redistributable but declares a path — only the "
                 "hash and fetch command may ship"
+            )
+        labels = data.get("labels")
+        if labels is not None and (
+            not isinstance(labels, list)
+            or not labels
+            or not all(isinstance(name, str) and name for name in labels)
+        ):
+            problems.append(
+                f"dataset.labels must be a non-empty list of column names, got {labels!r}"
             )
 
     model = manifest.get("model")
