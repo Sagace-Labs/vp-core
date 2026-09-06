@@ -1,13 +1,7 @@
 """The version manifest: schema, reader, writer and validator.
 
 One ``manifest.toml`` per released version, written by a pathway's ``train``
-command and never by hand. TOML rather than JSON because this is the document a
-human reads in a review diff; the numbers live in ``metrics.json`` beside it,
-which tooling consumes and which carries per-seed arrays.
-
-A pathway with no trained model omits the ``[dataset]`` and ``[model]``
-tables, and the version is then the rule set itself. The validator accepts
-that shape.
+command.
 """
 
 from __future__ import annotations
@@ -44,8 +38,6 @@ _DATASET_REQUIRED = (
     "base_rate",
     "fetch",
 )
-#: Label columns the recorded hash covers. Absent means the single-endpoint
-#: default, so a manifest written before endpoints were nameable stays valid.
 DEFAULT_DATASET_LABELS: tuple[str, ...] = ("label",)
 _MODEL_REQUIRED = ("family", "features", "fit", "weights", "sha256")
 _PROTOCOL_REQUIRED = ("id", "provider", "core_version")
@@ -140,7 +132,7 @@ def validate(manifest: dict[str, Any], *, version_dir: Path | None = None) -> li
     """Return a list of problems; empty means the manifest is valid.
 
     When ``version_dir`` is given, the referenced weights file must exist and
-    its recorded hash must match, which catches an edit to a released version.
+    its recorded hash must match.
     """
     from vp_core import protocols
     from vp_core.hashing import sha256_file

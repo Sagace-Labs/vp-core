@@ -1,8 +1,5 @@
 """Stateless molecular featurisation.
 
-Nothing is fitted on the training fold, so computing the whole matrix once and
-indexing it per fold is equivalent to featurising each fold separately.
-
 ``rdkit_desc`` and ``physchem_ion``, and therefore the composites built on
 them, depend on the installed RDKit version, which every version manifest
 records under ``[provenance]``.
@@ -33,8 +30,7 @@ _DESCRIPTORS: tuple[str, ...] = (
     "NumSaturatedRings", "NumAliphaticRings", "LabuteASA", "BertzCT",
 )
 
-# Groups charged at physiological pH. Standardisation neutralises a molecule
-# before it is featurised, so charge state survives only if counted explicitly.
+# Groups charged at physiological pH.
 _ACIDS: tuple[tuple[str, str], ...] = (
     ("carboxylic_acid", "[CX3](=O)[OX2H1,OX1H0-]"),
     ("sulfonic_acid", "[SX4](=O)(=O)[OX2H1,OX1H0-]"),

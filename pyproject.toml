@@ -1,6 +1,6 @@
 [project]
 name = "vp-core"
-version = "1.2.0"
+version = "1.2.1"
 description = "Shared infrastructure for virtual-pathway packages: splits, featurisers, metrics, evaluation protocols and the version manifest schema."
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -15,6 +15,9 @@ dependencies = [
     "joblib>=1.3",
     "xgboost>=2.0",
 ]
+
+[project.urls]
+Source = "https://github.com/Sagace-Labs/vp-core"
 
 [build-system]
 requires = ["hatchling"]

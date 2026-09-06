@@ -1,8 +1,4 @@
-"""Generate a version's human-readable card from its machine record.
-
-``CARD.md`` is derived, never authored. It restates the manifest and metrics so
-a reader can see what a version is without parsing TOML.
-"""
+"""Generate a version's human-readable card from its machine record."""
 
 from __future__ import annotations
 
@@ -54,8 +50,6 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
     proto_id = manifest.get("protocol", {}).get("id")
     if metrics:
         proto = protocols.PROTOCOLS.get(proto_id)
-        # Only a version measuring several endpoints separately needs its
-        # tables labelled; one model reported once reads better without.
         primary = manifest_mod.output_names(manifest)
         heading = f"### `{primary[0]}`" if metrics.get("additional_outputs") else None
         lines += [
@@ -77,9 +71,6 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
                 f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |"
             )
 
-        # A version with more than one output records the rest here. Each is
-        # measured on the compounds its own endpoint labels, so each carries
-        # its own fold sizes.
         for extra in metrics.get("additional_outputs", []):
             lines += [
                 "",

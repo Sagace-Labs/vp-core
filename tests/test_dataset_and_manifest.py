@@ -57,7 +57,7 @@ BOTH = ("label", "cytotox")
 
 
 def test_a_second_endpoint_leaves_the_first_endpoints_hash_alone():
-    """The reason a version keeps its recorded hash when a table gains a label."""
+    """A version keeps its recorded hash when a table gains a label."""
     assert dataset.dataset_hash(TWO_ENDPOINTS) == dataset.dataset_hash(GOOD)
     assert dataset.dataset_hash(TWO_ENDPOINTS, labels=BOTH) != dataset.dataset_hash(GOOD)
 

@@ -2,21 +2,13 @@
 
 Every pathway dataset carries the two identity columns ``inchikey`` and
 ``smiles`` (standardised), plus one column per endpoint it labels. A pathway
-with a single endpoint uses the default name ``label`` and needs to say nothing
-further. Extra columns may travel alongside as provenance but are excluded from
-the hash.
+with a single endpoint uses the default name ``label``. Extra columns may travel
+alongside as provenance but are excluded from the hash.
 
-A label may be null where the source made no call for that compound. That is a
-different statement from a negative, so a table records it as absent rather
-than as zero, and a fitting routine drops those rows for that endpoint only.
+The hash covers the standardised table, not the raw download. It
+covers exactly the label columns named.
 
-The hash covers the **standardised** table, not the raw download, so it is
-stable under cosmetic upstream change and moves when the science does. It
-covers exactly the label columns named, so a version that reads one endpoint of
-a two-endpoint table keeps its recorded hash when the other endpoint is added.
-
-Serialisation for hashing is CSV with a fixed float format and a fixed row
-order, not Parquet — Parquet bytes vary across writer versions.
+Serialisation for hashing is CSV with a fixed float format and a fixed row order.
 """
 
 from __future__ import annotations
@@ -41,7 +33,6 @@ __all__ = [
 IDENTITY_COLUMNS: tuple[str, ...] = ("inchikey", "smiles")
 DEFAULT_LABELS: tuple[str, ...] = ("label",)
 
-#: The single-endpoint contract, kept for pathways that declare nothing else.
 REQUIRED_COLUMNS: tuple[str, ...] = (*IDENTITY_COLUMNS, *DEFAULT_LABELS)
 
 
@@ -79,8 +70,7 @@ def validate_table(
 def dataset_hash(df: pd.DataFrame, *, labels: Sequence[str] | None = None) -> str:
     """SHA-256 over the identity and label columns, in a canonical order and format.
 
-    A null label serialises as an empty field, so adding an endpoint that some
-    compounds lack still moves the hash for that endpoint and no other.
+    A null label serialises as an empty field.
     """
     label_columns = _labels(labels)
     canon = df.loc[:, [*IDENTITY_COLUMNS, *label_columns]].copy()
@@ -123,12 +113,9 @@ def stratified_example(
     *,
     labels: Sequence[str] | None = None,
 ) -> pd.DataFrame:
-    """A small sample stratified on the combination of every label column.
+    """A small sample stratified on the combination of label columns.
 
-    The fixture lets a pathway's tests run with no network and no licensed
-    data, so every class of every endpoint must survive the sample — including
-    the rarest, which is why groups are taken from the label tuple rather than
-    from one column.
+    The fixture lets a pathway's tests run with no network and no licensed data.
     """
     label_columns = _labels(labels)
     frac = min(1.0, n / len(df))

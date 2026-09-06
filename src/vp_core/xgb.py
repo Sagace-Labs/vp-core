@@ -1,12 +1,11 @@
 """Shared XGBoost fitting.
 
-The trainer lives here and the hyperparameters live in each pathway. A pathway
+The trainer lives here, the hyperparameters per pathway. A pathway
 supplies its own ``params`` dict; this module owns only the mechanics that must
 not vary across pathways: balanced positive weighting, early stopping, device
 selection and the censored-potency fit.
 
-Early stopping watches the validation fold only. The test fold is never seen by
-any fitting decision.
+Early stopping watches the validation (not test) fold only.
 """
 
 from __future__ import annotations
@@ -80,9 +79,7 @@ def predict_proba(model, X) -> np.ndarray:
 class CensoredModel:
     """A potency regressor plus the calibration that turns it into a probability.
 
-    The two travel together because a potency alone cannot answer the binary
-    question a pathway declares, and a calibration fitted on a different model
-    would not apply. ``cutoff_um`` is the threshold the probability refers to.
+    ``cutoff_um`` is the threshold the probability refers to.
     """
 
     booster: Any
@@ -127,12 +124,9 @@ def fit_censored(
     """Fit potency as an interval, then calibrate it against the cutoff.
 
     Bounds are ``(lower, upper)`` per compound: equal for an exact measurement,
-    and ``upper = inf`` for one observed only above an assay ceiling. Fitting
-    the interval keeps such a compound as the bound it is instead of forcing it
-    to a value the assay never produced.
+    and ``upper = inf`` for one observed only above an assay ceiling.
 
-    The calibration is a two-parameter logistic on the validation fold, which
-    is the same fold early stopping uses and is never the test fold.
+    The calibration is a two-parameter logistic on the validation fold.
     """
     import xgboost as xgb
     from sklearn.linear_model import LogisticRegression

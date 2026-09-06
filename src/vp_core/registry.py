@@ -1,7 +1,6 @@
-"""Version discovery and loading, shared by every pathway.
+"""Version discovery and loading.
 
-List the versions, load one, predict with it. All of that is generic given a
-manifest, so it lives here rather than being reimplemented per pathway.
+List the versions, load one, predict with it.
 
 Two rules are enforced at load time: predictions come back as a DataFrame whose
 columns are the manifest's declared outputs, and a version directory is usable
@@ -39,7 +38,7 @@ def parse_version(name: str) -> tuple[int, int, int]:
 
 @dataclass(frozen=True)
 class Version:
-    """One immutable released version, on disk."""
+    """One immutable released version."""
 
     pathway: str
     name: str
@@ -155,12 +154,12 @@ class VersionedPathway:
 
 
 def _default_predict(model: Any, smiles: list[str], version: Version) -> np.ndarray:
-    """XGBoost on a vp-core fingerprint, when no predict function is supplied."""
+    """XGBoost on a vp-core fingerprint."""
     from rdkit import Chem, RDLogger
 
     from vp_core import fingerprints, xgb
 
-    # An unparseable input is a declared NaN, not an error.
+    # An unparseable input is a declared NaN.
     RDLogger.DisableLog("rdApp.*")
 
     features = version.features

@@ -1,8 +1,7 @@
 """Binary classification metrics.
 
 Every metric a protocol may name is defined here, so a protocol's ``metrics``
-tuple is checkable against ``METRICS``. A fold with a single class yields NaN
-rather than raising.
+tuple is checkable against ``METRICS``. A fold with a single class yields NaN.
 """
 
 from __future__ import annotations

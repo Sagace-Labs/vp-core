@@ -1,11 +1,6 @@
 """Documentation lints.
 
-A pathway README has a fixed shape: the same seven sections in the same order.
-Two prohibitions — no metric table and a line cap — keep it from going stale,
-since the README states one headline and links the generated version card.
-
-These checks are importable rather than living in a test file, so a pathway
-can lint its own README with no extra tooling.
+A pathway README has a fixed shape.
 """
 
 from __future__ import annotations
@@ -28,7 +23,7 @@ MAX_README_LINES = 80
 
 
 def check_pathway_readme(text: str, *, package: str | None = None) -> list[str]:
-    """Return a list of lint failures; empty means the README conforms."""
+    """Return a list of lint failures."""
     problems: list[str] = []
     lines = text.splitlines()
 

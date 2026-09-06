@@ -1,8 +1,6 @@
-"""The one SMILES standardiser.
+"""The SMILES standardiser.
 
-Every dataset and every hash is keyed on an InChIKey produced here. A
-different standardiser anywhere means salt and charge variants of the same
-compound stop matching, so this function has no options.
+Datasets and hashes are keyed on an InChIKey produced here.
 
 Normalise, take the largest fragment, neutralise, then emit the canonical
 isomeric SMILES and its InChIKey.

@@ -4,12 +4,12 @@ Shared infrastructure for virtual-pathway packages: scaffold splits, stateless
 featurisers, binary metrics, the evaluation-protocol registry, the version
 manifest schema and the documentation lints.
 
-Every pathway pins this package's major version. The split function, the
-featurisers and the metric definitions live here, so a change to any of them
-changes what a recorded number means, and the core version is written into every
-version manifest's `[protocol]` table.
+Pathways pin this package's major version. Split functions, featurisers and
+metric definitions are defined here. A change to them changes what a recorded
+number means. The core version is written into every version manifest's
+`[protocol]` table.
 
-## What is in it
+## Content
 
 `protocols` defines the evaluation recipes and refuses cross-protocol
 comparisons. `splits` provides Bemis-Murcko scaffold splitting in its

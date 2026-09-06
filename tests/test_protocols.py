@@ -1,9 +1,4 @@
-"""Protocols are append-only and their definitions are pinned.
-
-Editing a protocol in place changes what every metric already recorded against
-it means. The fingerprint file makes that edit fail here; a genuine change is a
-new revision (``@2``).
-"""
+"""Protocols are append-only and their definitions are pinned."""
 
 from __future__ import annotations
 

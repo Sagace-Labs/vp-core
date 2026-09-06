@@ -1,12 +1,11 @@
 """Bemis-Murcko scaffold splitting.
 
-Every compound sharing a Murcko scaffold goes in the same fold, so no scaffold
-is divided across folds. Two orderings, not interchangeable:
+Every compound sharing a Murcko scaffold goes in the same fold. Two orderings:
 
 ``shuffle=True``
     Scaffold groups are permuted by the seed before greedy packing, so distinct
     seeds give distinct test sets and multi-seed spread is a real variance
-    estimate. The default, and the only ordering the shipped protocols use.
+    estimate. (Default.)
 
 ``shuffle=False``
     Groups are packed largest-first, pinning the biggest scaffolds to train
@@ -47,9 +46,7 @@ def scaffold_split_indices(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Split into (train, val, test) index arrays by Murcko scaffold.
 
-    Raises when a fold comes out empty, which happens on small sets when one
-    scaffold group overflows past the val capacity into test. Use a protocol
-    whose seeds all yield valid folds.
+    Raises when a fold comes out empty.
     """
     groups: dict[str, list[int]] = defaultdict(list)
     for i, smi in enumerate(smiles):
@@ -78,11 +75,20 @@ def scaffold_split_indices(
         else:
             test.extend(idxs)
 
+    capacity = {"train": n_train, "val": n_val, "test": n_test}
     for name, fold in (("train", train), ("val", val), ("test", test)):
         if not fold:
+            largest = ", ".join(
+                str(s)
+                for s in sorted((len(g) for g in groups.values()), reverse=True)[:3]
+            )
             raise ValueError(
                 f"scaffold split (seed={seed}, shuffle={shuffle}) produced an empty "
-                f"{name} fold on {n} compounds — this seed is unusable for this dataset"
+                f"{name} fold on {n} compounds in {len(groups)} scaffold groups. "
+                f"Groups are packed into train first, so a group larger than the "
+                f"{name} capacity of {capacity[name]} never lands there, and the "
+                f"largest groups here hold {largest}. This seed is unusable for "
+                f"this dataset, and a protocol naming it cannot measure it."
             )
 
     return np.array(sorted(train)), np.array(sorted(val)), np.array(sorted(test))
@@ -98,8 +104,7 @@ def scaffold_train_val(
     """Two-way scaffold split that covers every compound.
 
     Used for a deployment fit, where the validation fold exists only to stop
-    boosting early and nothing may be discarded. Distinct from
-    :func:`scaffold_split_indices`, which holds out a test fold.
+    boosting early and nothing may be discarded.
     """
     groups: dict[str, list[int]] = defaultdict(list)
     for i, smi in enumerate(smiles):

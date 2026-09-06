@@ -4,12 +4,11 @@ A protocol fixes how a number was produced apart from the model and the data:
 the split, the fold sizes, the seeds and the metric set. Two metric values may
 be compared only when they carry the same protocol id.
 
-Protocols are **append-only**. A change means a new revision —
+Protocols are append-only. A change means a new revision —
 ``scaffold-shuffle-5seed@1`` becomes ``@2`` — and ``tests/test_protocols.py``
 pins every definition to a fingerprint.
 
-Changing the seed *set* is a protocol change: a mean over seeds (0, 1, 2, 3, 4)
-and a mean over (0, 2, 6, 8, 13) are different estimators.
+Changing the seed *set* is a protocol change.
 """
 
 from __future__ import annotations
