@@ -23,7 +23,7 @@ from vp_core import (
 )
 from vp_core.registry import Version, VersionedPathway
 
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 
 __all__ = [
     "Version",

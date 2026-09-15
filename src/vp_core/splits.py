@@ -1,16 +1,22 @@
 """Bemis-Murcko scaffold splitting.
 
-Every compound sharing a Murcko scaffold goes in the same fold. Two orderings:
+Every compound sharing a Murcko scaffold goes in the same fold. Three packers:
 
-``shuffle=True``
-    Scaffold groups are permuted by the seed before greedy packing, so distinct
-    seeds give distinct test sets and multi-seed spread is a real variance
-    estimate. (Default.)
+:func:`scaffold_split_indices` with ``shuffle=True``
+    Scaffold groups are permuted by the seed, then offered to train, val and
+    test in that fixed order. A group larger than the val capacity can only
+    land in train or test, so val can be starved on a library that holds a few
+    dominant groups.
 
-``shuffle=False``
+:func:`scaffold_split_indices` with ``shuffle=False``
     Groups are packed largest-first, pinning the biggest scaffolds to train
     (the MoleculeNet convention). Harder, but seeds are correlated, so a
     multi-seed standard deviation understates the spread.
+
+:func:`scaffold_balanced_indices`
+    Groups are permuted by the seed, then each goes to the fold whose filled
+    share it would leave lowest. An oversized group settles in train, the only
+    fold it does not overfill.
 """
 
 from __future__ import annotations
@@ -19,7 +25,12 @@ from collections import defaultdict
 
 import numpy as np
 
-__all__ = ["murcko_scaffold", "scaffold_split_indices", "scaffold_train_val"]
+__all__ = [
+    "murcko_scaffold",
+    "scaffold_balanced_indices",
+    "scaffold_split_indices",
+    "scaffold_train_val",
+]
 
 
 def murcko_scaffold(smiles: str) -> str:
@@ -92,6 +103,74 @@ def scaffold_split_indices(
             )
 
     return np.array(sorted(train)), np.array(sorted(val)), np.array(sorted(test))
+
+
+_FOLDS: tuple[str, str, str] = ("train", "val", "test")
+
+
+def scaffold_balanced_indices(
+    smiles: list[str],
+    val_frac: float,
+    test_frac: float,
+    *,
+    seed: int = 0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Split into (train, val, test) index arrays by Murcko scaffold.
+
+    Groups are permuted by the seed. Each group then goes to the fold whose filled share it would leave lowest, which settles a group too large for val or test into train.
+
+    A fold still left empty takes the smallest group from the fold holding the most.
+    """
+    groups: dict[str, list[int]] = defaultdict(list)
+    for i, smi in enumerate(smiles):
+        groups[murcko_scaffold(smi)].append(i)
+
+    if len(groups) < len(_FOLDS):
+        raise ValueError(
+            f"{len(smiles)} compounds form only {len(groups)} scaffold "
+            f"group(s); {len(_FOLDS)} folds cannot each hold one"
+        )
+
+    n = len(smiles)
+    n_test = round(n * test_frac)
+    n_val = round(n * val_frac)
+    target = {
+        "train": max(1, n - n_test - n_val),
+        "val": max(1, n_val),
+        "test": max(1, n_test),
+    }
+
+    rng = np.random.default_rng(seed)
+    items = list(groups.items())
+    ordered = [items[k] for k in rng.permutation(len(items))]
+
+    held: dict[str, list[list[int]]] = {name: [] for name in _FOLDS}
+    size = dict.fromkeys(_FOLDS, 0)
+    for _, idxs in ordered:
+        chosen, best = _FOLDS[0], None
+        for name in _FOLDS:
+            # Filled share the group would leave behind, so a group too large
+            # for a small fold lands in the one it distorts least.
+            cost = ((size[name] + len(idxs)) / target[name], -target[name])
+            if best is None or cost < best:
+                chosen, best = name, cost
+        held[chosen].append(idxs)
+        size[chosen] += len(idxs)
+
+    for name in _FOLDS:
+        if held[name]:
+            continue
+        donor = max(_FOLDS, key=lambda f: len(held[f]))
+        counts = [len(group) for group in held[donor]]
+        moved = held[donor].pop(counts.index(min(counts)))
+        held[name].append(moved)
+        size[donor] -= len(moved)
+        size[name] += len(moved)
+
+    folds = [
+        np.array(sorted(i for group in held[name] for i in group)) for name in _FOLDS
+    ]
+    return folds[0], folds[1], folds[2]
 
 
 def scaffold_train_val(

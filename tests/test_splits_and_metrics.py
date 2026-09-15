@@ -6,7 +6,12 @@ import numpy as np
 import pytest
 
 from vp_core.metrics import aggregate, binary_metrics
-from vp_core.splits import murcko_scaffold, scaffold_split_indices, scaffold_train_val
+from vp_core.splits import (
+    murcko_scaffold,
+    scaffold_balanced_indices,
+    scaffold_split_indices,
+    scaffold_train_val,
+)
 
 # Twelve distinct ring systems, two substituted variants each. All cyclic.
 _RINGS = [
@@ -59,6 +64,63 @@ def test_train_val_split_covers_everything():
 def test_empty_fold_raises_rather_than_silently_shrinking():
     with pytest.raises(ValueError, match="empty"):
         scaffold_split_indices(SMILES[:3], 0.2, 0.2, seed=0)
+
+
+# One scaffold holding most of the set: the shape that starves a fold when
+# groups are offered to train, val and test in a fixed order.
+DOMINATED = ["C" * k + "c1ccccc1" for k in range(1, 31)] + _RINGS[1:]
+
+
+def test_the_dominated_fixture_has_one_oversized_group():
+    """Guards the tests below: the big group must exceed the val capacity."""
+    groups: dict[str, int] = {}
+    for smi in DOMINATED:
+        groups[murcko_scaffold(smi)] = groups.get(murcko_scaffold(smi), 0) + 1
+    assert len(groups) >= 3
+    assert max(groups.values()) > round(len(DOMINATED) * 0.10)
+
+
+def test_balanced_split_partitions_without_overlap():
+    train, val, test = scaffold_balanced_indices(DOMINATED, 0.10, 0.15, seed=0)
+    combined = np.concatenate([train, val, test])
+    assert sorted(combined.tolist()) == list(range(len(DOMINATED)))
+
+
+def test_balanced_split_keeps_scaffolds_whole():
+    train, val, test = scaffold_balanced_indices(SMILES, 0.25, 0.25, seed=1)
+    seen: dict[str, str] = {}
+    for name, idx in (("train", train), ("val", val), ("test", test)):
+        for i in idx:
+            scaffold = murcko_scaffold(SMILES[i])
+            assert seen.setdefault(scaffold, name) == name, (
+                f"scaffold {scaffold!r} appears in both {seen[scaffold]} and {name}"
+            )
+
+
+def test_balanced_split_gives_seed_distinct_test_sets():
+    a = set(scaffold_balanced_indices(SMILES, 0.25, 0.25, seed=0)[2].tolist())
+    b = set(scaffold_balanced_indices(SMILES, 0.25, 0.25, seed=3)[2].tolist())
+    assert a != b, "balanced scaffold splits must differ between seeds"
+
+
+def test_balanced_split_fills_every_fold_where_fixed_order_packing_starves_one():
+    """The reason this packer exists, pinned against the one it supplements."""
+    starved = []
+    for seed in range(20):
+        try:
+            scaffold_split_indices(DOMINATED, 0.10, 0.15, seed=seed)
+        except ValueError:
+            starved.append(seed)
+    assert starved, "the fixture no longer reproduces the starved fold"
+
+    for seed in range(20):
+        folds = scaffold_balanced_indices(DOMINATED, 0.10, 0.15, seed=seed)
+        assert all(len(f) for f in folds), f"seed {seed} left a fold empty"
+
+
+def test_balanced_split_needs_one_group_per_fold():
+    with pytest.raises(ValueError, match="cannot each hold one"):
+        scaffold_balanced_indices(["c1ccccc1", "Cc1ccccc1"], 0.10, 0.15, seed=0)
 
 
 def test_metrics_on_a_perfect_ranking():

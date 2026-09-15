@@ -18,7 +18,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from vp_core.splits import scaffold_split_indices
+from vp_core.splits import scaffold_balanced_indices, scaffold_split_indices
 
 __all__ = [
     "PROTOCOLS",
@@ -35,7 +35,7 @@ class Protocol:
     """A frozen, citable evaluation recipe."""
 
     id: str
-    split: str  # "scaffold-shuffle" | "scaffold-sorted"
+    split: str  # "scaffold-shuffle" | "scaffold-sorted" | "scaffold-balanced"
     val_frac: float
     test_frac: float
     seeds: tuple[int, ...]
@@ -49,6 +49,10 @@ class Protocol:
         if seed not in self.seeds:
             raise ValueError(
                 f"seed {seed} is not part of protocol {self.id} (seeds={self.seeds})"
+            )
+        if self.split == "scaffold-balanced":
+            return scaffold_balanced_indices(
+                smiles, val_frac=self.val_frac, test_frac=self.test_frac, seed=seed
             )
         if self.split not in ("scaffold-shuffle", "scaffold-sorted"):
             raise ValueError(f"unknown split strategy: {self.split!r}")
@@ -87,6 +91,22 @@ _DEFINITIONS: tuple[Protocol, ...] = (
             "Bemis-Murcko scaffold split with scaffold groups permuted by seed, "
             "so distinct seeds give distinct test sets. Five seeds; report mean "
             "and standard deviation over the held-out test folds."
+        ),
+    ),
+    Protocol(
+        id="scaffold-balanced-5seed@1",
+        split="scaffold-balanced",
+        val_frac=0.10,
+        test_frac=0.15,
+        seeds=(0, 1, 2, 3, 4),
+        metrics=("auc_roc", "auprc", "mcc", "brier"),
+        description=(
+            "Bemis-Murcko scaffold split with scaffold groups permuted by seed "
+            "and each group placed in the fold it overfills least, so a group "
+            "larger than a fold's capacity settles in train instead of starving "
+            "that fold. Same fold fractions, seeds and metrics as "
+            "scaffold-shuffle-5seed@1; only the packing differs. Five seeds; "
+            "report mean and standard deviation over the held-out test folds."
         ),
     ),
     Protocol(
