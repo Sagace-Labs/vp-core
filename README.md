@@ -15,8 +15,10 @@ number means. The core version is written into every version manifest's
 comparisons. `splits` provides Bemis-Murcko scaffold splitting in its
 evaluation (three-way) and deployment (two-way) forms. `dataset` fixes the
 three-column table contract and its canonical hash. `manifest` reads, writes
-and validates the version record. `registry` turns a versions directory into a
-loadable, self-describing predictor. `docs` holds the README lint.
+and validates the version record. `metrics_store` reads and merges
+`metrics.json`, which keys one entry per protocol a version was measured under.
+`registry` turns a versions directory into a loadable, self-describing
+predictor. `docs` holds the README lint.
 
 ## Install
 

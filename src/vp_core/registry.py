@@ -9,7 +9,6 @@ only if its manifest validates.
 
 from __future__ import annotations
 
-import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -62,9 +61,14 @@ class Version:
         model = self.manifest.get("model")
         return str(model["features"]) if model else None
 
-    def metrics(self) -> dict[str, Any] | None:
-        path = self.directory / "metrics.json"
-        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+    def metrics(self, protocol: str | None = None) -> dict[str, Any] | None:
+        """The whole record, or one protocol's entry when ``protocol`` is given."""
+        from vp_core import metrics_store
+
+        record = metrics_store.read(self.directory)
+        if protocol is None:
+            return record
+        return metrics_store.entry_for(record, protocol)
 
     def problems(self) -> list[str]:
         return manifest_mod.validate(self.manifest, version_dir=self.directory)

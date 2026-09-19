@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 
@@ -13,9 +12,63 @@ def _fmt(value: float) -> str:
     return "n/a" if value != value else f"{value:.3f}"
 
 
-def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str:
+def _metric_rows(test: dict[str, Any]) -> list[str]:
+    rows = ["| metric | mean | std | per seed |", "|---|---|---|---|"]
+    for name, agg in test.items():
+        per_seed = ", ".join(_fmt(v) for v in agg["per_seed"])
+        rows.append(
+            f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |"
+        )
+    return rows
+
+
+def _performance_section(
+    entry: dict[str, Any],
+    manifest: dict[str, Any],
+    protocol_id: str,
+    *,
+    multi: bool,
+) -> list[str]:
+    """One protocol's section, from its heading to its last metric row.
+
+    The heading names the protocol only when the version carries more than one,
+    so a single-protocol card renders exactly as it did before protocols could
+    be stacked — released cards must stay reproducible.
+    """
     from vp_core import manifest as manifest_mod
     from vp_core import protocols
+
+    proto = protocols.PROTOCOLS.get(protocol_id)
+    primary = manifest_mod.output_names(manifest)
+    heading = f"### `{primary[0]}`" if entry.get("additional_outputs") else None
+    lines = [
+        f"## Performance — `{protocol_id}`" if multi else "## Performance",
+        "",
+        f"Protocol `{protocol_id}` — "
+        f"{proto.description if proto else 'unknown protocol'}",
+        "",
+        f"Evaluated {entry.get('evaluated')} on "
+        f"n_train={entry['n']['train']}, n_val={entry['n']['val']}, "
+        f"n_test={entry['n']['test']}.",
+        "",
+        *([heading, ""] if heading else []),
+        *_metric_rows(entry["test"]),
+    ]
+    for extra in entry.get("additional_outputs", []):
+        lines += [
+            "",
+            f"### `{extra['name']}`",
+            "",
+            f"Measured on n_train={extra['n']['train']}, "
+            f"n_val={extra['n']['val']}, n_test={extra['n']['test']}.",
+            "",
+            *_metric_rows(extra["test"]),
+        ]
+    return lines
+
+
+def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str:
+    from vp_core import metrics_store
 
     pathway = manifest["pathway"]
     version = manifest["version"]
@@ -47,47 +100,16 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
         "",
     ]
 
-    proto_id = manifest.get("protocol", {}).get("id")
-    if metrics:
-        proto = protocols.PROTOCOLS.get(proto_id)
-        primary = manifest_mod.output_names(manifest)
-        heading = f"### `{primary[0]}`" if metrics.get("additional_outputs") else None
-        lines += [
-            "## Performance",
-            "",
-            f"Protocol `{proto_id}` — {proto.description if proto else 'unknown protocol'}",
-            "",
-            f"Evaluated {metrics.get('evaluated')} on "
-            f"n_train={metrics['n']['train']}, n_val={metrics['n']['val']}, "
-            f"n_test={metrics['n']['test']}.",
-            "",
-            *([heading, ""] if heading else []),
-            "| metric | mean | std | per seed |",
-            "|---|---|---|---|",
-        ]
-        for name, agg in metrics["test"].items():
-            per_seed = ", ".join(_fmt(v) for v in agg["per_seed"])
-            lines.append(
-                f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |"
+    declared = manifest.get("protocol", {}).get("id")
+    measured = metrics_store.entries(metrics)
+    if measured:
+        ids = metrics_store.protocol_ids(metrics, declared=declared)
+        for position, protocol_id in enumerate(ids):
+            if position:
+                lines.append("")
+            lines += _performance_section(
+                measured[protocol_id], manifest, protocol_id, multi=len(ids) > 1
             )
-
-        for extra in metrics.get("additional_outputs", []):
-            lines += [
-                "",
-                f"### `{extra['name']}`",
-                "",
-                f"Measured on n_train={extra['n']['train']}, "
-                f"n_val={extra['n']['val']}, n_test={extra['n']['test']}.",
-                "",
-                "| metric | mean | std | per seed |",
-                "|---|---|---|---|",
-            ]
-            for name, agg in extra["test"].items():
-                per_seed = ", ".join(_fmt(v) for v in agg["per_seed"])
-                lines.append(
-                    f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |"
-                )
-
         lines += [
             "",
             "> Comparable only with metrics carrying the same protocol id.",
@@ -139,11 +161,11 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
 def write_card(version_dir: str | Path) -> Path:
     """Render ``CARD.md`` from the manifest and metrics in ``version_dir``."""
     from vp_core import manifest as manifest_mod
+    from vp_core import metrics_store
 
     version_dir = Path(version_dir)
     manifest = manifest_mod.read(version_dir / "manifest.toml")
-    metrics_path = version_dir / "metrics.json"
-    metrics = json.loads(metrics_path.read_text()) if metrics_path.exists() else None
+    metrics = metrics_store.read(version_dir)
     out = version_dir / "CARD.md"
     out.write_text(render_card(manifest, metrics), encoding="utf-8")
     return out
