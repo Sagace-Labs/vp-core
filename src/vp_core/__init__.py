@@ -9,6 +9,7 @@ number means. The core version is written into every version manifest's
 from __future__ import annotations
 
 from vp_core import (
+    binary_panel,
     card,
     dataset,
     docs,
@@ -24,12 +25,13 @@ from vp_core import (
 )
 from vp_core.registry import Version, VersionedPathway
 
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 
 __all__ = [
     "Version",
     "VersionedPathway",
     "__version__",
+    "binary_panel",
     "card",
     "dataset",
     "docs",

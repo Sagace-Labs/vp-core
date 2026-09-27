@@ -12,6 +12,8 @@ import numpy as np
 __all__ = ["FINGERPRINTS", "featurize", "width"]
 
 FINGERPRINTS: tuple[str, ...] = (
+    "morgan2_1024",
+    "morgan2_1024_openadmet10",
     "morgan2_2048",
     "morgan2_count_2048",
     "morgan3_2048",
@@ -19,8 +21,30 @@ FINGERPRINTS: tuple[str, ...] = (
     "rdkit_desc",
     "physchem_ion",
     "combo3",
+    "combo3_counted",
     "morgan2c_physchem_ion",
+    "morgan2c_maccs_desc_ion",
 )
+
+
+def _openadmet10(smiles: list[str]) -> np.ndarray:
+    """The ten descriptors used by the CYP 50 uM screen recipe."""
+    from rdkit import Chem
+    from rdkit.Chem import Descriptors, Lipinski, rdMolDescriptors
+
+    X = np.zeros((len(smiles), 10), dtype=np.float32)
+    for i, smi in enumerate(smiles):
+        mol = Chem.MolFromSmiles(smi)
+        if mol is None:
+            continue
+        X[i] = [
+            Descriptors.MolWt(mol), Descriptors.MolLogP(mol),
+            rdMolDescriptors.CalcTPSA(mol), Lipinski.NumHDonors(mol),
+            Lipinski.NumHAcceptors(mol), Lipinski.NumRotatableBonds(mol),
+            Lipinski.RingCount(mol), rdMolDescriptors.CalcFractionCSP3(mol),
+            Lipinski.NumAromaticRings(mol), Chem.GetFormalCharge(mol),
+        ]
+    return X
 
 # Bulk properties, then shape and complexity.
 _DESCRIPTORS: tuple[str, ...] = (
@@ -137,6 +161,10 @@ def _physchem_ion(smiles: list[str]) -> np.ndarray:
 
 def featurize(smiles: list[str], kind: str) -> np.ndarray:
     """Featurise ``smiles``. Unparseable inputs become an all-zero row."""
+    if kind == "morgan2_1024":
+        return _morgan(smiles, 2, 1024)
+    if kind == "morgan2_1024_openadmet10":
+        return np.hstack([_morgan(smiles, 2, 1024), _openadmet10(smiles)])
     if kind == "morgan2_2048":
         return _morgan(smiles, 2, 2048)
     if kind == "morgan2_count_2048":
@@ -153,9 +181,25 @@ def featurize(smiles: list[str], kind: str) -> np.ndarray:
         return np.hstack(
             [_morgan(smiles, 3, 2048), _maccs(smiles), _rdkit_desc(smiles)]
         ).astype(np.float32)
+    if kind == "combo3_counted":
+        return np.hstack(
+            [
+                _morgan(smiles, 3, 2048, counted=True),
+                _maccs(smiles),
+                _rdkit_desc(smiles),
+            ]
+        ).astype(np.float32)
     if kind == "morgan2c_physchem_ion":
         return np.hstack(
             [_morgan(smiles, 2, 2048, counted=True), _physchem_ion(smiles)]
+        ).astype(np.float32)
+    if kind == "morgan2c_maccs_desc_ion":
+        return np.hstack(
+            [
+                _morgan(smiles, 2, 2048, counted=True),
+                _maccs(smiles),
+                _physchem_ion(smiles),
+            ]
         ).astype(np.float32)
     raise ValueError(f"unknown fingerprint {kind!r}; known: {list(FINGERPRINTS)}")
 

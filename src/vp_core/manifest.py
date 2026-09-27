@@ -16,6 +16,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "dataset_labels",
     "dumps",
+    "features_for",
     "output_names",
     "read",
     "validate",
@@ -128,6 +129,54 @@ def dataset_labels(manifest: dict[str, Any]) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+def features_for(manifest: dict[str, Any], output: str) -> str:
+    """The featuriser ``output`` was fit with.
+
+    ``model.features`` names the featuriser every output uses. An output
+    listed in the optional ``model.features_by_output`` uses that entry's
+    ``kind`` instead. A version whose outputs all share one featuriser writes
+    only ``model.features``, which is every version released before this key
+    existed.
+    """
+    model = manifest.get("model") or {}
+    for entry in model.get("features_by_output") or ():
+        if entry.get("output") == output:
+            return str(entry["kind"])
+    return str(model["features"])
+
+
+def _feature_problems(manifest: dict[str, Any], model: dict[str, Any]) -> list[str]:
+    # Featuriser names are not checked against ``vp_core.fingerprints``: a
+    # pathway may build its own, as vp-oxphos does with ``rdkit_desc+alerts``.
+    problems: list[str] = []
+    declared = output_names(manifest)
+
+    overrides = model.get("features_by_output")
+    if overrides is None:
+        return problems
+    if not isinstance(overrides, list):
+        problems.append("model.features_by_output must be an array of tables")
+        return problems
+
+    seen: set[str] = set()
+    for entry in overrides:
+        if not isinstance(entry, dict) or "output" not in entry or "kind" not in entry:
+            problems.append(
+                "each model.features_by_output entry needs 'output' and 'kind'"
+            )
+            continue
+        name = str(entry["output"])
+        if declared and name not in declared:
+            problems.append(
+                f"model.features_by_output names {name!r}, which the signature "
+                f"does not declare: {declared}"
+            )
+        if name in seen:
+            problems.append(f"model.features_by_output lists {name!r} twice")
+        seen.add(name)
+    return problems
+
+
 def validate(manifest: dict[str, Any], *, version_dir: Path | None = None) -> list[str]:
     """Return a list of problems; empty means the manifest is valid.
 
@@ -222,6 +271,7 @@ def validate(manifest: dict[str, Any], *, version_dir: Path | None = None) -> li
         for key in _MODEL_REQUIRED:
             if key not in model:
                 problems.append(f"model missing {key!r}")
+        problems.extend(_feature_problems(manifest, model))
         if version_dir is not None and model.get("weights"):
             weights = version_dir / str(model["weights"])
             if not weights.exists():

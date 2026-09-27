@@ -58,8 +58,13 @@ class Version:
 
     @property
     def features(self) -> str | None:
+        """The featuriser every output uses unless it declares its own."""
         model = self.manifest.get("model")
         return str(model["features"]) if model else None
+
+    def features_for(self, output: str) -> str:
+        """The featuriser ``output`` was fit with."""
+        return manifest_mod.features_for(self.manifest, output)
 
     def metrics(self, protocol: str | None = None) -> dict[str, Any] | None:
         """The whole record, or one protocol's entry when ``protocol`` is given."""
@@ -166,10 +171,9 @@ def _default_predict(model: Any, smiles: list[str], version: Version) -> np.ndar
     # An unparseable input is a declared NaN.
     RDLogger.DisableLog("rdApp.*")
 
-    features = version.features
-    if features is None:
+    if version.features is None:
         raise ValueError(f"{version.pathway} {version.name} declares no feature kind")
-    X = fingerprints.featurize(smiles, features)
+    X = fingerprints.featurize(smiles, version.features_for(version.output_names[0]))
     proba = xgb.predict_proba(model, X).astype(np.float32)
     unparseable = np.array([Chem.MolFromSmiles(s) is None for s in smiles])
     proba[unparseable] = np.nan

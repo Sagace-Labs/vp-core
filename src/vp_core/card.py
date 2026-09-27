@@ -131,6 +131,20 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
             f"Regenerate and check for upstream drift with `{data['fetch']}`.",
             "",
         ]
+        for extra in data.get("auxiliary", []):
+            lines += [
+                f"{extra['name']} — {extra['source']}. Retrieved "
+                f"{extra['retrieved']}, licensed {extra['licence']}"
+                + (
+                    ", redistributed here."
+                    if extra.get("redistributable")
+                    else ", not redistributable."
+                ),
+                "",
+                f"`{extra['n_rows']}` compounds, table SHA-256 "
+                f"`{extra['sha256'][:16]}…`. Role: {extra['role']}.",
+                "",
+            ]
 
     model = manifest.get("model")
     if model:
