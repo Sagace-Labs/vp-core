@@ -41,6 +41,7 @@ class Protocol:
     seeds: tuple[int, ...]
     metrics: tuple[str, ...]
     description: str
+    split_key_sha256: str = ""
 
     def split_indices(
         self, smiles: list[str], seed: int
@@ -49,6 +50,11 @@ class Protocol:
         if seed not in self.seeds:
             raise ValueError(
                 f"seed {seed} is not part of protocol {self.id} (seeds={self.seeds})"
+            )
+        if self.split == "fixed-similarity":
+            raise ValueError(
+                f"{self.id} uses an immutable parent-key file; load its split from "
+                "the evaluating pathway package"
             )
         if self.split == "scaffold-balanced":
             return scaffold_balanced_indices(
@@ -76,6 +82,8 @@ class Protocol:
                 ",".join(self.metrics),
             ]
         )
+        if self.split_key_sha256:
+            payload += "|" + self.split_key_sha256
         return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
@@ -117,8 +125,7 @@ _DEFINITIONS: tuple[Protocol, ...] = (
         seeds=(0,),
         metrics=("auc_roc",),
         description=(
-            "Single-seed smoke protocol for tests and CI. Carries no variance "
-            "estimate."
+            "Single-seed smoke protocol for tests and CI. Carries no variance estimate."
         ),
     ),
     Protocol(
@@ -133,6 +140,29 @@ _DEFINITIONS: tuple[Protocol, ...] = (
             "scaffold groups permuted by seed. Five seeds; symmetry-aware "
             "top-k uses pessimistic ties and atom metrics pool held-out atoms."
         ),
+    ),
+    Protocol(
+        id="metabolite-v1-fixed-similarity@1",
+        split="fixed-similarity",
+        val_frac=0.0,
+        test_frac=407 / 1881,
+        seeds=(0,),
+        metrics=(
+            "recall_at_1",
+            "recall_at_5",
+            "recall_at_10",
+            "recall_at_20",
+            "reachable_recall",
+            "candidates_per_parent",
+            "prior_recall_at_10",
+        ),
+        description=(
+            "Frozen five-source directed-pair truth and parent-key split: "
+            "1,474 training parents and 407 held-out parents, with cross-side "
+            "Morgan similarity below 0.4. Learned generators are rebuilt from "
+            "training pairs only. One forest seed; metrics are parent-macro means."
+        ),
+        split_key_sha256="93bf99b074faf7be64af96808d4f7ffd6ed3986335050b80836cce999bf31361",
     ),
 )
 

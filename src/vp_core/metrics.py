@@ -13,6 +13,8 @@ __all__ = ["METRICS", "aggregate", "binary_metrics"]
 METRICS: tuple[str, ...] = (
     "auc_roc", "auprc", "mcc", "brier", "balanced_acc",
     "top1", "top2", "top3", "atom_auc", "atom_auprc",
+    "recall_at_1", "recall_at_5", "recall_at_10", "recall_at_20",
+    "reachable_recall", "candidates_per_parent", "prior_recall_at_10",
 )
 
 

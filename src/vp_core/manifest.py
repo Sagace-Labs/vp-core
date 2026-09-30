@@ -161,9 +161,7 @@ def _feature_problems(manifest: dict[str, Any], model: dict[str, Any]) -> list[s
     seen: set[str] = set()
     for entry in overrides:
         if not isinstance(entry, dict) or "output" not in entry or "kind" not in entry:
-            problems.append(
-                "each model.features_by_output entry needs 'output' and 'kind'"
-            )
+            problems.append("each model.features_by_output entry needs 'output' and 'kind'")
             continue
         name = str(entry["output"])
         if declared and name not in declared:
@@ -246,7 +244,10 @@ def validate(manifest: dict[str, Any], *, version_dir: Path | None = None) -> li
 
     data = manifest.get("dataset")
     if isinstance(data, dict):
-        for key in _DATASET_REQUIRED:
+        required = _DATASET_REQUIRED
+        if data.get("format") == "directed-pairs@1":
+            required = tuple(key for key in required if key != "base_rate")
+        for key in required:
             if key not in data:
                 problems.append(f"dataset missing {key!r}")
         if data.get("redistributable") and not data.get("path"):

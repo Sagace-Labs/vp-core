@@ -16,9 +16,7 @@ def _metric_rows(test: dict[str, Any]) -> list[str]:
     rows = ["| metric | mean | std | per seed |", "|---|---|---|---|"]
     for name, agg in test.items():
         per_seed = ", ".join(_fmt(v) for v in agg["per_seed"])
-        rows.append(
-            f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |"
-        )
+        rows.append(f"| {name} | {_fmt(agg['mean'])} | {_fmt(agg['std'])} | {per_seed} |")
     return rows
 
 
@@ -44,8 +42,7 @@ def _performance_section(
     lines = [
         f"## Performance — `{protocol_id}`" if multi else "## Performance",
         "",
-        f"Protocol `{protocol_id}` — "
-        f"{proto.description if proto else 'unknown protocol'}",
+        f"Protocol `{protocol_id}` — {proto.description if proto else 'unknown protocol'}",
         "",
         f"Evaluated {entry.get('evaluated')} on "
         f"n_train={entry['n']['train']}, n_val={entry['n']['val']}, "
@@ -91,9 +88,7 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
     for out in sig.get("outputs", []):
         rng = out.get("range")
         rng_s = f"{rng[0]}–{rng[1]}" if rng else "—"
-        lines.append(
-            f"| `{out['name']}` | {out['dtype']} | {rng_s} | {out['semantics']} |"
-        )
+        lines.append(f"| `{out['name']}` | {out['dtype']} | {rng_s} | {out['semantics']} |")
     lines += [
         "",
         f"Missing values: {sig.get('outputs', [{}])[0].get('missing', 'n/a')}",
@@ -123,13 +118,23 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
             "",
             f"{data['name']} — {data['source']}. Retrieved {data['retrieved']}, "
             f"licensed {data['licence']}"
-            + (", redistributed here." if data.get("redistributable") else ", not redistributable."),
+            + (
+                ", redistributed here."
+                if data.get("redistributable")
+                else ", not redistributable."
+            ),
             "",
-            f"`{data['n_rows']}` {data.get('unit', 'compounds')}, "
-            f"positive rate `{data['base_rate']:.3f}`, "
-            f"table SHA-256 `{data['sha256'][:16]}…`",
+            (
+                f"`{data['n_rows']}` {data.get('unit', 'compounds')}, "
+                + (f"positive rate `{data['base_rate']:.3f}`, " if "base_rate" in data else "")
+                + f"table SHA-256 `{data['sha256'][:16]}…`"
+            ),
             "",
-            f"Regenerate and check for upstream drift with `{data['fetch']}`.",
+            (
+                f"Verify the bundled release with `{data['fetch']}`."
+                if data.get("format") == "directed-pairs@1"
+                else f"Regenerate and check for upstream drift with `{data['fetch']}`."
+            ),
             "",
         ]
         for extra in data.get("auxiliary", []):
@@ -166,9 +171,14 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
         "",
         f"Environment: {env}.",
         "",
-        "Reproducibility is to this dataset hash and this environment, not "
-        "bit-exact: the sources are live endpoints and RDKit descriptor values "
-        "move between releases.",
+        (
+            "The bundled source and table hashes pin this directed-pair release; "
+            "refits also depend on the recorded environment."
+            if manifest.get("dataset", {}).get("format") == "directed-pairs@1"
+            else "Reproducibility is to this dataset hash and this environment, not "
+            "bit-exact: the sources are live endpoints and RDKit descriptor values "
+            "move between releases."
+        ),
     ]
     return "\n".join(lines) + "\n"
 

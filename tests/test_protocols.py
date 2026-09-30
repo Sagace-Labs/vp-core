@@ -44,7 +44,11 @@ def test_metric_names_are_defined(protocol_id):
     unknown = set(protocol.metrics) - set(METRICS)
     assert not unknown, f"{protocol_id} names undefined metrics {sorted(unknown)}"
     assert protocol.seeds, f"{protocol_id} has no seeds"
-    assert 0 < protocol.val_frac < 1 and 0 < protocol.test_frac < 1
+    if protocol.split == "fixed-similarity":
+        assert protocol.val_frac == 0 and 0 < protocol.test_frac < 1
+        assert protocol.split_key_sha256
+    else:
+        assert 0 < protocol.val_frac < 1 and 0 < protocol.test_frac < 1
 
 
 def test_unknown_protocol_raises_with_the_options():
