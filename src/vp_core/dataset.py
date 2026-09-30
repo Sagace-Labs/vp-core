@@ -14,6 +14,7 @@ Serialisation for hashing is CSV with a fixed float format and a fixed row order
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -24,7 +25,9 @@ __all__ = [
     "IDENTITY_COLUMNS",
     "REQUIRED_COLUMNS",
     "dataset_hash",
+    "read_site_table",
     "read_table",
+    "site_dataset_hash",
     "stratified_example",
     "validate_table",
     "write_table",
@@ -34,6 +37,40 @@ IDENTITY_COLUMNS: tuple[str, ...] = ("inchikey", "smiles")
 DEFAULT_LABELS: tuple[str, ...] = ("label",)
 
 REQUIRED_COLUMNS: tuple[str, ...] = (*IDENTITY_COLUMNS, *DEFAULT_LABELS)
+SITE_COLUMNS: tuple[str, ...] = ("source", "identifier", "smiles", "sites")
+
+
+def read_site_table(path: str | Path) -> pd.DataFrame:
+    """Read one record per site-annotated molecule and validate atom labels."""
+    from rdkit import Chem
+
+    table = pd.read_parquet(path)
+    if list(table.columns) != list(SITE_COLUMNS):
+        raise ValueError(f"site table columns must be {SITE_COLUMNS}")
+    for source, identifier, smiles, raw in table.itertuples(index=False, name=None):
+        if not source or not identifier or not smiles:
+            raise ValueError("site table has an empty identity field")
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            raise ValueError(f"unparseable site-table SMILES: {smiles}")
+        sites = json.loads(raw)
+        if not isinstance(sites, list) or any(
+            not isinstance(index, int) or index < 0 or index >= mol.GetNumAtoms()
+            for index in sites
+        ):
+            raise ValueError(f"invalid atom index in {source}:{identifier}")
+    return table
+
+
+def site_dataset_hash(table: pd.DataFrame) -> str:
+    """Hash standardised site records, including source and atom indices."""
+    # Source record order is part of the scaffold split, so the hash binds it.
+    canon = table.loc[:, list(SITE_COLUMNS)]
+    h = hashlib.sha256()
+    for row in canon.itertuples(index=False, name=None):
+        h.update(json.dumps(row, ensure_ascii=False, separators=(",", ":")).encode())
+        h.update(b"\n")
+    return h.hexdigest()
 
 
 def _labels(labels: Sequence[str] | None) -> tuple[str, ...]:

@@ -91,7 +91,11 @@ class Version:
     def frame(self, values: np.ndarray) -> pd.DataFrame:
         """Wrap a raw ``(n, k)`` array in the declared output columns."""
         names = self.output_names
-        values = np.asarray(values, dtype=np.float32).reshape(len(values), -1)
+        values = np.asarray(values, dtype=np.float32)
+        if values.ndim == 1:
+            values = values.reshape(-1, 1)
+        if values.ndim != 2:
+            raise ValueError(f"expected one or two dimensions, got {values.ndim}")
         if values.shape[1] != len(names):
             raise ValueError(
                 f"{self.pathway} {self.name} produced {values.shape[1]} columns but its "

@@ -121,6 +121,19 @@ _DEFINITIONS: tuple[Protocol, ...] = (
             "estimate."
         ),
     ),
+    Protocol(
+        id="som-scaffold-shuffle-5seed@1",
+        split="scaffold-shuffle",
+        val_frac=0.10,
+        test_frac=0.15,
+        seeds=(0, 1, 2, 3, 4),
+        metrics=("top1", "top2", "top3", "atom_auc", "atom_auprc"),
+        description=(
+            "Bemis-Murcko scaffold split of site-annotated molecules, with "
+            "scaffold groups permuted by seed. Five seeds; symmetry-aware "
+            "top-k uses pessimistic ties and atom metrics pool held-out atoms."
+        ),
+    ),
 )
 
 PROTOCOLS: dict[str, Protocol] = {p.id: p for p in _DEFINITIONS}

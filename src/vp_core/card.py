@@ -125,7 +125,8 @@ def render_card(manifest: dict[str, Any], metrics: dict[str, Any] | None) -> str
             f"licensed {data['licence']}"
             + (", redistributed here." if data.get("redistributable") else ", not redistributable."),
             "",
-            f"`{data['n_rows']}` compounds, positive rate `{data['base_rate']:.3f}`, "
+            f"`{data['n_rows']}` {data.get('unit', 'compounds')}, "
+            f"positive rate `{data['base_rate']:.3f}`, "
             f"table SHA-256 `{data['sha256'][:16]}…`",
             "",
             f"Regenerate and check for upstream drift with `{data['fetch']}`.",

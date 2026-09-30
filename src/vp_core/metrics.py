@@ -10,7 +10,10 @@ import numpy as np
 
 __all__ = ["METRICS", "aggregate", "binary_metrics"]
 
-METRICS: tuple[str, ...] = ("auc_roc", "auprc", "mcc", "brier", "balanced_acc")
+METRICS: tuple[str, ...] = (
+    "auc_roc", "auprc", "mcc", "brier", "balanced_acc",
+    "top1", "top2", "top3", "atom_auc", "atom_auprc",
+)
 
 
 def binary_metrics(
